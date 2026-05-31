@@ -13,8 +13,12 @@ from rich.table import Table
 from .backtest import run_backtest
 from .config import PROJECT_ROOT
 from .data_loader import ensure_sample_data, latest_available_date, update_all_data
+from .deployment import run_deploy_health_check
 from .report import generate_daily_report
+from .risk_state import load_risk_state, risk_state_dict, sync_risk_state
+from .scheduler import next_refresh_time, refresh_plan, run_due_refreshes, run_scheduler_loop
 from .scoring import score_latest, save_ranking
+from .signal_center import build_signal_center, summarize_signal_center
 from .uzi import (
     DEFAULT_UZI_CONFIG,
     UZI_DEPTHS,
@@ -86,6 +90,31 @@ def score_cmd(target_date: str | None) -> None:
     console.print(table)
 
 
+@main.command("signals")
+@click.option("--date", "target_date", default=None, help="Target date, YYYY-MM-DD.")
+def signals_cmd(target_date: str | None) -> None:
+    """Build the v2 explainable signal center."""
+
+    init_project()
+    center = build_signal_center(target_date=target_date, save=True)
+    summary = summarize_signal_center(center)
+    table = Table(title=f"Signal Center {target_date or ''}")
+    for col in ["rank", "symbol", "name", "signal", "confidence", "strategy", "risk"]:
+        table.add_column(col)
+    for row in center.head(12).to_dict("records"):
+        table.add_row(
+            str(row["signal_rank"]),
+            str(row["symbol"]),
+            str(row["name"]),
+            str(row["signal_type"]),
+            f"{float(row['confidence']) * 100:.1f}%",
+            str(row["strategy"]),
+            str(row["risk_permission"]),
+        )
+    console.print(table)
+    console.print(summary)
+
+
 @main.command("report")
 @click.option("--date", "target_date", required=True, help="Target date, YYYY-MM-DD.")
 def report_cmd(target_date: str) -> None:
@@ -95,6 +124,16 @@ def report_cmd(target_date: str) -> None:
     paths = generate_daily_report(target_date)
     console.print(f"[green]Markdown:[/green] {paths['markdown']}")
     console.print(f"[green]HTML:[/green] {paths['html']}")
+
+
+@main.command("risk-state")
+@click.option("--sync", "sync_now", is_flag=True, help="Recalculate and persist the current risk state.")
+def risk_state_cmd(sync_now: bool) -> None:
+    """View or persist the v2 risk state."""
+
+    init_project()
+    state = sync_risk_state(notes=["cli sync"]) if sync_now else load_risk_state()
+    console.print(risk_state_dict(state))
 
 
 @main.command("watch")
@@ -120,6 +159,39 @@ def watch_cmd(target_date: str, watch_time: str, snapshot_path: Path | None, sou
     console.print(result.to_string(index=False))
 
 
+@main.command("schedule")
+@click.option("--date", "target_date", default=None, help="Target date, YYYY-MM-DD.")
+@click.option("--run-due", is_flag=True, help="Run all due refresh slots immediately.")
+@click.option("--all", "include_completed", is_flag=True, help="Include completed/due slots when running.")
+@click.option("--skip-daily", is_flag=True, help="Do not update daily data before running due slots.")
+@click.option("--loop", "loop_forever", is_flag=True, help="Keep a local scheduler loop running.")
+def schedule_cmd(
+    target_date: str | None,
+    run_due: bool,
+    include_completed: bool,
+    skip_daily: bool,
+    loop_forever: bool,
+) -> None:
+    """Show or run the v2 intraday refresh schedule."""
+
+    init_project()
+    if loop_forever:
+        console.print("[green]Starting local refresh scheduler loop.[/green]")
+        run_scheduler_loop()
+        return
+    if run_due:
+        slots = run_due_refreshes(
+            target_date=target_date,
+            include_daily=not skip_daily,
+            include_completed=include_completed,
+        )
+        console.print([slot.__dict__ for slot in slots])
+        return
+    plan = refresh_plan(target_date=target_date)
+    console.print(plan.to_string(index=False))
+    console.print(f"Next refresh: {next_refresh_time()}")
+
+
 @main.command("refresh-now")
 @click.option("--date", "target_date", default=None, help="Target date, YYYY-MM-DD.")
 @click.option("--time", "watch_time", default=None, help="Watch time, e.g. 10:35.")
@@ -143,6 +215,15 @@ def refresh_now_cmd(target_date: str | None, watch_time: str | None, skip_daily:
         console.print(f"[yellow]No realtime/cache/manual data available. Manual fallback template: {path}[/yellow]")
     else:
         console.print(result.head(20).to_string(index=False))
+
+
+@main.command("deploy-check")
+def deploy_check_cmd() -> None:
+    """Run Streamlit Cloud deployment health checks."""
+
+    init_project()
+    payload = run_deploy_health_check()
+    console.print(payload)
 
 
 @main.command("backtest")

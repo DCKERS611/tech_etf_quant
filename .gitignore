@@ -22,6 +22,10 @@ uv.lock
 logs/*.log
 data/cache/*
 data/snapshots/*
+data/state/*
+reports/signals/*
+reports/schedule/*
+reports/deploy/*
 vendor/UZI-Skill/
 reports/uzi/*
 

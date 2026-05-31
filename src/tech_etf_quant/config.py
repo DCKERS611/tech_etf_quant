@@ -18,11 +18,15 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 CACHE_DIR = DATA_DIR / "cache"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
+STATE_DIR = DATA_DIR / "state"
 LOG_DIR = PROJECT_ROOT / "logs"
 REPORT_DIR = PROJECT_ROOT / "reports"
 DAILY_REPORT_DIR = REPORT_DIR / "daily"
 BACKTEST_REPORT_DIR = REPORT_DIR / "backtest"
 CHART_DIR = REPORT_DIR / "charts"
+SIGNAL_REPORT_DIR = REPORT_DIR / "signals"
+SCHEDULE_REPORT_DIR = REPORT_DIR / "schedule"
+DEPLOY_REPORT_DIR = REPORT_DIR / "deploy"
 
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -70,6 +74,13 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "watch": {
         "data_source_priority": ["akshare_realtime", "local_cache", "manual_csv"],
         "watch_times": ["09:35", "10:35", "11:30", "13:30", "14:35"],
+        "auto_refresh_interval_seconds": 60,
+        "deduplicate_same_slot": True,
+    },
+    "signal": {
+        "confidence_floor": 0.35,
+        "top_n": 8,
+        "save_json": True,
     },
     "report": {"benchmark_symbols": ["588000", "159915", "510300"]},
 }

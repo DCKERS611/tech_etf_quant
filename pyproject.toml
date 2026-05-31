@@ -1,6 +1,6 @@
 [project]
 name = "tech-etf-quant"
-version = "1.0.0"
+version = "2.0.0"
 description = "A local semi-automatic quant assistant for A-share technology ETFs."
 readme = "README.md"
 requires-python = ">=3.12"

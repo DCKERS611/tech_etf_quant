@@ -13,6 +13,7 @@ from .data_loader import ensure_sample_data, load_processed_data
 from .portfolio import Portfolio
 from .risk import evaluate_trade_permission
 from .scoring import calculate_scores, save_ranking
+from .signal_center import build_signal_center
 from .strategy import pick_primary_signal
 
 
@@ -63,12 +64,43 @@ def _market_table(ranking: pd.DataFrame) -> str:
     return display.to_markdown(index=False)
 
 
+def _signal_center_table(signal_center: pd.DataFrame) -> str:
+    if signal_center.empty:
+        return "暂无信号中心数据"
+    display = signal_center.head(8)[
+        [
+            "signal_rank",
+            "symbol",
+            "name",
+            "strategy",
+            "signal_type",
+            "confidence",
+            "risk_permission",
+            "explain",
+        ]
+    ].rename(
+        columns={
+            "signal_rank": "序",
+            "symbol": "代码",
+            "name": "名称",
+            "strategy": "策略",
+            "signal_type": "信号",
+            "confidence": "置信度",
+            "risk_permission": "权限",
+            "explain": "解释",
+        }
+    )
+    display["置信度"] = display["置信度"].map(lambda x: f"{float(x) * 100:.1f}%")
+    return display.to_markdown(index=False)
+
+
 def build_daily_report_markdown(
     target_date: str,
     ranking: pd.DataFrame,
     portfolio: Portfolio,
     signal,
     risk_decision,
+    signal_center: pd.DataFrame | None = None,
 ) -> str:
     current_return = portfolio.equity / 8000 - 1
     hard_stop_left = portfolio.equity - 7360
@@ -105,14 +137,16 @@ def build_daily_report_markdown(
             f"- 建议时间：{signal.suggested_time if signal else '14:30'}",
             f"- 止损价：{signal.stop_loss_price if signal else 0:.3f}",
             f"- 失效条件：{signal.invalid_condition if signal else '排名、趋势或风控条件变化'}",
-            "## 5. 风控检查",
+            "## 5. 可解释信号中心",
+            _signal_center_table(signal_center if signal_center is not None else pd.DataFrame()),
+            "## 6. 风控检查",
             f"- 是否触发账户硬风控：{'是' if portfolio.risk_state == 'HARD_DEFENSE' else '否'}",
             "- 是否触发单笔止损：需结合当前持仓成本盘中确认",
             f"- 是否触发追高限制：{'是' if risk_decision.only_test and '涨幅' in risk_decision.reason else '否'}",
             f"- 是否触发连续亏损限制：{'是' if '连续亏损' in risk_decision.reason else '否'}",
             f"- 是否允许主仓：{'是' if risk_decision.allow_main else '否'}",
             f"- 是否只允许测试仓：{'是' if risk_decision.only_test else '否'}",
-            "## 6. 明日计划",
+            "## 7. 明日计划",
             "- 9:35：集合竞价后自动拉取实时行情，确认高开和开盘质量",
             "- 10:35：自动刷新涨幅、放量和高开状态，主仓不追高",
             "- 午休：检查冲高回落与同组强弱",
@@ -158,7 +192,8 @@ def generate_daily_report(
     pct_change = float(top.iloc[0]["pct_change"]) if not top.empty else 0.0
     risk_decision = evaluate_trade_permission(portfolio, pct_change=pct_change, watch_time="14:30", settings=settings)
     signal = pick_primary_signal(ranking, risk_decision, settings=settings)
-    markdown_text = build_daily_report_markdown(target_date, ranking, portfolio, signal, risk_decision)
+    signal_center = build_signal_center(target_date, ranking=ranking, portfolio=portfolio, settings=settings, save=False)
+    markdown_text = build_daily_report_markdown(target_date, ranking, portfolio, signal, risk_decision, signal_center)
     md_path = output_dir / f"{target_date}_daily_report.md"
     html_path = output_dir / f"{target_date}_daily_report.html"
     md_path.write_text(markdown_text, encoding="utf-8")

@@ -97,12 +97,24 @@ def calculate_performance(
     annualized = (1 + cumulative) ** (252 / n) - 1 if cumulative > -1 else -1
     max_drawdown = float(equity_curve["drawdown"].min())
     sharpe = float(np.sqrt(252) * returns.mean() / returns.std()) if returns.std() > 0 else 0.0
+    downside = returns[returns < 0]
+    sortino = float(np.sqrt(252) * returns.mean() / downside.std()) if len(downside) > 1 and downside.std() > 0 else 0.0
+    annualized_vol = float(returns.std() * np.sqrt(252)) if returns.std() > 0 else 0.0
+    calmar = float(annualized / abs(max_drawdown)) if max_drawdown < 0 else 0.0
     sell_trades = trades[trades["side"] == "SELL"] if not trades.empty else pd.DataFrame()
     wins = sell_trades[sell_trades.get("realized_pnl", 0) > 0] if not sell_trades.empty else pd.DataFrame()
     losses = sell_trades[sell_trades.get("realized_pnl", 0) < 0] if not sell_trades.empty else pd.DataFrame()
     avg_profit = float(wins["realized_pnl"].mean()) if not wins.empty else 0.0
     avg_loss = float(losses["realized_pnl"].mean()) if not losses.empty else 0.0
     state_counts = equity_curve["position_state"].value_counts(normalize=True).to_dict()
+    exposure = (
+        (equity_curve["position_value"].astype(float) / equity_curve["equity"].replace(0, np.nan).astype(float))
+        .fillna(0)
+        .clip(lower=0)
+    )
+    total_turnover = float(trades["amount"].sum() / initial_cash) if not trades.empty and "amount" in trades else 0.0
+    fee_drag = float(trades["commission"].sum() / initial_cash) if not trades.empty and "commission" in trades else 0.0
+    slippage_drag = float(trades["slippage"].sum() / initial_cash) if not trades.empty and "slippage" in trades else 0.0
     max_consecutive_losses = 0
     cur_losses = 0
     holding_days: list[int] = []
@@ -126,6 +138,9 @@ def calculate_performance(
         "annualized_return": float(annualized),
         "max_drawdown": max_drawdown,
         "sharpe_ratio": sharpe,
+        "sortino_ratio": sortino,
+        "annualized_volatility": annualized_vol,
+        "calmar_ratio": calmar,
         "trade_count": int(len(trades)),
         "win_rate": float(len(wins) / len(sell_trades)) if len(sell_trades) else 0.0,
         "average_profit": avg_profit,
@@ -138,6 +153,14 @@ def calculate_performance(
         "test_only_days_ratio": float(state_counts.get("TEST_ONLY", 0.0)),
         "main_days_ratio": float(state_counts.get("MAIN", 0.0)),
         "strong_days_ratio": float(state_counts.get("STRONG", 0.0)),
+        "average_exposure": float(exposure.mean()),
+        "max_exposure": float(exposure.max()),
+        "turnover": total_turnover,
+        "fee_drag": fee_drag,
+        "slippage_drag": slippage_drag,
+        "data_days": int(len(equity_curve)),
+        "execution_model": "next_open_with_slippage_commission_lot_size",
+        "lookahead_guard": "signals generated after close, orders executed next open",
         "relative_588000": float(cumulative - _benchmark_return(data_by_symbol, "588000", start, end)),
         "relative_159915": float(cumulative - _benchmark_return(data_by_symbol, "159915", start, end)),
         "relative_510300": float(cumulative - _benchmark_return(data_by_symbol, "510300", start, end)),
@@ -191,6 +214,7 @@ def run_backtest(
     trades: list[Trade] = []
     equity_rows: list[dict] = []
     position_rows: list[dict] = []
+    signal_rows: list[dict] = []
 
     for i, current_date in enumerate(dates):
         open_prices = {
@@ -325,6 +349,22 @@ def run_backtest(
                         stop_loss_price=float(top["close"]) * 0.95,
                         reason="无主仓机会时保留测试仓参与",
                     )
+                if signal is not None:
+                    signal_rows.append(
+                        {
+                            "date": current_date,
+                            "symbol": signal.symbol,
+                            "name": signal.name,
+                            "signal_type": signal.signal_type,
+                            "position_type": signal.position_type,
+                            "suggested_amount": signal.suggested_amount,
+                            "suggested_time": signal.suggested_time,
+                            "stop_loss_price": signal.stop_loss_price,
+                            "reason": signal.reason,
+                            "invalid_condition": signal.invalid_condition,
+                            "next_execution_date": dates[i + 1],
+                        }
+                    )
                 if signal is not None and signal.signal_type.startswith("BUY") and signal.symbol not in portfolio.positions:
                     pending_orders.append(
                         {
@@ -341,12 +381,15 @@ def run_backtest(
     equity_curve = pd.DataFrame(equity_rows)
     trades_df = pd.DataFrame([asdict(trade) for trade in trades])
     positions_df = pd.DataFrame(position_rows)
+    signals_df = pd.DataFrame(signal_rows)
     performance = calculate_performance(equity_curve, trades_df, data_by_symbol, initial_cash, start, end)
+    performance["signal_count"] = int(len(signals_df))
     if write_outputs:
         output_dir.mkdir(parents=True, exist_ok=True)
         equity_curve.to_csv(output_dir / "equity_curve.csv", index=False, encoding="utf-8")
         trades_df.to_csv(output_dir / "trades.csv", index=False, encoding="utf-8")
         positions_df.to_csv(output_dir / "positions.csv", index=False, encoding="utf-8")
+        signals_df.to_csv(output_dir / "signals.csv", index=False, encoding="utf-8")
         (output_dir / "performance.json").write_text(
             json.dumps(performance, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -358,6 +401,7 @@ def run_backtest(
         "equity_curve": equity_curve,
         "trades": trades_df,
         "positions": positions_df,
+        "signals": signals_df,
         "performance": performance,
         "output_dir": output_dir,
     }

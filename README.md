@@ -4,6 +4,20 @@
 
 本项目是本地运行的 A股科技类 ETF 半自动量化辅助交易系统，覆盖自动数据拉取、数据缓存、指标、评分、策略、风控、回测、日报、日志、图表、CLI 和 Streamlit 面板。系统只生成交易辅助建议、风险状态、策略信号和回测结果，不连接券商接口，不自动下单。
 
+## v2.0 工作台
+
+v2.0 的目标不是堆功能，而是把 v1.0 工具打磨成每天能打开看的个人量化工作台：
+
+- 策略注册系统：策略统一注册、统一评估，默认包含趋势追涨、强趋势回调、风控测试仓。
+- 信号中心：按日期生成 `reports/signals/{date}_signal_center.csv/json`，包含信号、置信度、风控权限、失效条件和解释。
+- 更完整的盘中自动刷新：固定刷新槽仍为 9:35、10:35、11:30、13:30、14:35，并生成刷新状态。
+- 定时任务：CLI 支持查看计划、运行到期刷新槽、本地循环调度。
+- 更强的回测可信度：保留次日开盘成交、防前视、滑点、手续费、100 份约束，并输出信号轨迹和更多绩效诊断。
+- 风控状态持久化：风险状态落盘到 `data/state/risk_state.json`，页面和 CLI 均可同步。
+- Streamlit Cloud 稳定部署：内置部署健康检查，主文件路径固定为 `app/streamlit_app.py`。
+- 页面体验重构：面板升级为工作台、信号中心、盘中刷新、风控状态、回测实验室、报告中心、配置数据、部署健康和 UZI 项目分析。
+- 更专业的报告和可解释信号：日报内置信号中心解释表，不只给结论，也给触发原因和失效条件。
+
 ## 数据架构
 
 系统按“一次性交付”的原则内置完整数据链路，不要求每天手动上传快照。
@@ -139,6 +153,22 @@ python -m tech_etf_quant.cli dashboard
 ```
 
 面板固定绑定 `localhost`；端口由 Streamlit 自动选择并打印在终端里，例如 `http://localhost:8501`。面板包含首页概览、ETF池、今日排名、风控状态、每日交易报告、回测结果、交易日志、盘中自动刷新和 UZI 项目分析。
+
+v2.0 CLI 常用入口：
+
+```powershell
+python -m tech_etf_quant.cli signals --date 2026-05-31
+python -m tech_etf_quant.cli schedule --date 2026-05-31
+python -m tech_etf_quant.cli schedule --date 2026-05-31 --run-due
+python -m tech_etf_quant.cli risk-state --sync
+python -m tech_etf_quant.cli deploy-check
+```
+
+本地循环调度：
+
+```powershell
+python -m tech_etf_quant.cli schedule --loop
+```
 
 ## 盘中自动刷新
 
