@@ -1,0 +1,36 @@
+[project]
+name = "tech-etf-quant"
+version = "1.0.0"
+description = "A local semi-automatic quant assistant for A-share technology ETFs."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "akshare>=1.18.64",
+    "click>=8.4.1",
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.6",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.3",
+    "plotly>=6.7.0",
+    "pydantic>=2.13.4",
+    "pytest>=9.0.3",
+    "python-dateutil>=2.9.0.post0",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "streamlit>=1.58.0",
+    "tabulate>=0.10.0",
+]
+
+[project.scripts]
+tech-etf-quant = "tech_etf_quant.cli:main"
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

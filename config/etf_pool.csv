@@ -1,0 +1,16 @@
+symbol,name,group,role,priority,enabled,notes
+512480,半导体ETF,semiconductor,core,1,true,半导体核心代理
+159995,芯片ETF,semiconductor,core,1,true,芯片核心代理
+588200,科创芯片ETF,semiconductor,enhanced,2,true,科创芯片/先进封装代理
+516640,芯片龙头ETF,semiconductor,enhanced,2,true,半导体龙头代理
+515050,5G通信ETF,cpo_pcb,core,1,true,CPO/光模块/通信代理
+515880,通信ETF,cpo_pcb,core,1,true,通信设备代理
+159819,人工智能ETF,cpo_pcb,enhanced,2,true,AI硬件代理
+516510,云计算ETF,cpo_pcb,enhanced,2,true,算力/云计算代理
+515260,电子ETF,electronics_mlcc,core,1,true,PCB/MLCC/电子元器件代理
+159732,消费电子ETF,electronics_mlcc,enhanced,2,true,消费电子/MLCC代理
+516150,稀土ETF,rare_earth,core,1,true,稀土材料卫星方向
+159713,稀土产业ETF,rare_earth,enhanced,2,true,稀土材料备选
+588000,科创50ETF,benchmark,benchmark,1,true,科技基准
+159915,创业板ETF,benchmark,benchmark,1,true,成长风格基准
+510300,沪深300ETF,benchmark,benchmark,2,true,全市场基准

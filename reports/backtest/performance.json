@@ -1,0 +1,21 @@
+{
+  "cumulative_return": 0.003940005625000298,
+  "annualized_return": 0.0015741433171323482,
+  "max_drawdown": -0.12100158828936736,
+  "sharpe_ratio": 0.05657103034623605,
+  "trade_count": 363,
+  "win_rate": 0.40331491712707185,
+  "average_profit": 33.769281452054784,
+  "average_loss": -25.6715868888889,
+  "profit_loss_ratio": 1.315434125604082,
+  "max_single_loss": -257.44666200000023,
+  "max_consecutive_losses": 9,
+  "average_holding_days": 6.430939226519337,
+  "empty_days_ratio": 0.10793650793650794,
+  "test_only_days_ratio": 0.28888888888888886,
+  "main_days_ratio": 0.5587301587301587,
+  "strong_days_ratio": 0.044444444444444446,
+  "relative_588000": -0.02451527892784533,
+  "relative_159915": 0.37263056890224977,
+  "relative_510300": -0.6723420456570508
+}

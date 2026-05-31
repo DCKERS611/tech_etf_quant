@@ -1,0 +1,61 @@
+account:
+  initial_cash: 8000
+  max_account_loss_ratio: 0.08
+  test_position_amount: 1000
+  light_position_amount: 2000
+  standard_position_min: 3000
+  standard_position_max: 5000
+  max_position_ratio: 0.80
+  min_cash_reserve: 1000
+
+trading:
+  commission_rate: 0.00001
+  slippage_rate: 0.0003
+  lot_size: 100
+  price_tick: 0.001
+  execute_price: "next_open"
+  allow_short: false
+  allow_margin: false
+  allow_t0: false
+
+risk:
+  test_stop_loss_ratio: 0.05
+  main_stop_loss_ratio: 0.06
+  account_max_loss_ratio: 0.08
+  chase_limit_normal: 0.04
+  chase_limit_hard: 0.06
+  high_open_limit: 0.02
+  consecutive_loss_limit_1: 2
+  consecutive_loss_limit_2: 3
+  main_trade_cooldown_days: 10
+
+indicators:
+  ma_short: 20
+  ma_long: 60
+  r_short: 5
+  r_mid: 20
+  r_long: 60
+  vol_window: 20
+  amount_window: 20
+
+filters:
+  min_avg_amount: 30000000
+  min_history_days: 120
+
+watch:
+  data_source_priority:
+    - "akshare_realtime"
+    - "local_cache"
+    - "manual_csv"
+  watch_times:
+    - "09:35"
+    - "10:35"
+    - "11:30"
+    - "13:30"
+    - "14:35"
+
+report:
+  benchmark_symbols:
+    - "588000"
+    - "159915"
+    - "510300"

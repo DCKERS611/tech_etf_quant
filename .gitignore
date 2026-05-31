@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local IDE settings
+.idea/
+.vscode/
+
+# Runtime logs and caches
+*.log
+logs/*.log
+data/cache/*
+data/snapshots/*
+
+# Keep generated examples intentional; ignore ad-hoc temp files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+~$*

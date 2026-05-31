@@ -1,0 +1,14 @@
+akshare
+pandas
+numpy
+matplotlib
+plotly
+streamlit
+pyyaml
+pydantic
+click
+rich
+pytest
+python-dateutil
+openpyxl
+tabulate
