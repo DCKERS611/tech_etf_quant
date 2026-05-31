@@ -238,6 +238,53 @@ python -m tech_etf_quant.cli schedule --loop
 
 也可以在 Streamlit 面板的 `盘中刷新` 页面点击 `运行当前槽` 或 `运行到期槽`。
 
+### 让系统一直挂着跑
+
+推荐方式是在 Windows 里安装一个登录后自动启动的后台任务：
+
+```powershell
+cd E:\tech_etf_quant_system_full_spec_v1
+.\install_scheduler_task.ps1
+```
+
+或双击：
+
+```text
+install_scheduler_task.bat
+```
+
+安装后，Windows 每次登录都会后台启动 `python -m tech_etf_quant.cli schedule --loop`，按固定盘中时间自动刷新。日志在：
+
+```text
+logs/scheduler.log
+logs/scheduler.err.log
+logs/scheduler.pid
+```
+
+临时手动启动后台调度器：
+
+```powershell
+.\start_scheduler.ps1
+```
+
+临时停止后台调度器：
+
+```powershell
+.\stop_scheduler.ps1
+```
+
+彻底取消开机/登录自动启动：
+
+```powershell
+.\uninstall_scheduler_task.ps1
+```
+
+注意：后台调度器只负责自动刷新和生成记录，不会自动打开网页。需要看面板时再运行：
+
+```powershell
+python -m tech_etf_quant.cli dashboard
+```
+
 ### 收盘后
 
 ```powershell
