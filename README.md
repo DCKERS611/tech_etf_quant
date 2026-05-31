@@ -170,6 +170,147 @@ python -m tech_etf_quant.cli deploy-check
 python -m tech_etf_quant.cli schedule --loop
 ```
 
+## 快速操作手册
+
+### 本地第一次启动
+
+```powershell
+cd E:\tech_etf_quant_system_full_spec_v1
+.venv\Scripts\activate
+python -m tech_etf_quant.cli init
+python -m tech_etf_quant.cli dashboard
+```
+
+浏览器打开终端里显示的地址，通常是：
+
+```text
+http://localhost:8501
+```
+
+如果 8501 被占用，Streamlit 会自动换到 8502、8503 等端口，终端会打印新的 `localhost` 地址。
+
+### 每天盘前
+
+```powershell
+python -m tech_etf_quant.cli update-data
+python -m tech_etf_quant.cli signals
+python -m tech_etf_quant.cli risk-state --sync
+```
+
+然后打开面板看 `工作台` 和 `信号中心`。重点看：
+
+- `可行动信号`
+- `平均置信度`
+- `strategy`
+- `risk_permission`
+- `explain`
+- `invalid_condition`
+
+### 盘中刷新
+
+固定观察时间：
+
+```text
+09:35
+10:35
+11:30
+13:30
+14:35
+```
+
+手动运行某个时间槽：
+
+```powershell
+python -m tech_etf_quant.cli watch --date 2026-05-31 --time 10:35
+```
+
+自动运行当前已到期但未完成的时间槽：
+
+```powershell
+python -m tech_etf_quant.cli schedule --run-due --skip-daily
+```
+
+本地常驻循环调度：
+
+```powershell
+python -m tech_etf_quant.cli schedule --loop
+```
+
+也可以在 Streamlit 面板的 `盘中刷新` 页面点击 `运行当前槽` 或 `运行到期槽`。
+
+### 收盘后
+
+```powershell
+python -m tech_etf_quant.cli signals
+python -m tech_etf_quant.cli report --date 2026-05-31
+python -m tech_etf_quant.cli risk-state --sync
+```
+
+输出位置：
+
+```text
+reports/signals/
+reports/daily/
+data/state/risk_state.json
+```
+
+### 回测
+
+```powershell
+python -m tech_etf_quant.cli backtest --start 2021-01-01 --end 2026-05-31
+```
+
+看面板里的 `回测实验室`，或查看：
+
+```text
+reports/backtest/performance.json
+reports/backtest/equity_curve.csv
+reports/backtest/trades.csv
+reports/backtest/signals.csv
+```
+
+v2.0 回测默认使用次日开盘成交、滑点、手续费、100 份一手约束和防前视信号轨迹。
+
+### Streamlit Cloud 部署
+
+Streamlit Cloud 页面填写：
+
+```text
+Repository: DCKERS611/tech_etf_quant
+Branch: main
+Main file path: app/streamlit_app.py
+```
+
+部署前可运行：
+
+```powershell
+python -m tech_etf_quant.cli deploy-check
+```
+
+如果 Cloud 安装依赖失败，优先检查：
+
+- `requirements.txt` 是否存在
+- `uv.lock` 是否不存在
+- `Main file path` 是否填写 `app/streamlit_app.py`
+- GitHub 上是否已经推送到 `main`
+
+### GitHub 更新
+
+本地改完后：
+
+```powershell
+git status
+git add .
+git commit -m "Update quant workbench"
+git push origin main
+```
+
+当前公开仓库：
+
+```text
+https://github.com/DCKERS611/tech_etf_quant
+```
+
 ## 盘中自动刷新
 
 默认自动拉取盘中实时行情：
