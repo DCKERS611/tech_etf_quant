@@ -92,6 +92,9 @@ def setup_logging() -> None:
 def init_project() -> None:
     ensure_directories()
     write_default_settings()
+    from .uzi import write_default_uzi_config
+
+    write_default_uzi_config()
     ensure_log_files()
     copy_readme_spec_if_missing()
 

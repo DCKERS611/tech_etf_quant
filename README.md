@@ -138,7 +138,7 @@ streamlit run app/streamlit_app.py
 python -m tech_etf_quant.cli dashboard
 ```
 
-面板固定绑定 `localhost`；端口由 Streamlit 自动选择并打印在终端里，例如 `http://localhost:8501`。面板包含首页概览、ETF池、今日排名、风控状态、每日交易报告、回测结果、交易日志和盘中自动刷新。
+面板固定绑定 `localhost`；端口由 Streamlit 自动选择并打印在终端里，例如 `http://localhost:8501`。面板包含首页概览、ETF池、今日排名、风控状态、每日交易报告、回测结果、交易日志、盘中自动刷新和 UZI 项目分析。
 
 ## 盘中自动刷新
 
@@ -184,6 +184,46 @@ data/snapshots/input_snapshot.csv
 ```powershell
 python -m tech_etf_quant.cli watch --date 2026-05-31 --time 10:35 --source manual
 ```
+
+## UZI 项目内分析
+
+UZI-Skill 只作为当前项目的本地分析引擎接入，不安装到全局 Codex skills，不影响项目外对话。配置在：
+
+```text
+config/uzi.yaml
+```
+
+本地引擎目录为：
+
+```text
+vendor/UZI-Skill
+```
+
+该目录已加入 `.gitignore`，不会提交到 GitHub。分析任务和输出默认写入：
+
+```text
+reports/uzi/
+```
+
+准备项目内 UZI 引擎：
+
+```powershell
+python -m tech_etf_quant.cli uzi --target 512480 --command quick-scan --ensure
+```
+
+只生成本地任务文件：
+
+```powershell
+python -m tech_etf_quant.cli uzi --target 512480 --command quick-scan
+```
+
+直接运行 UZI 自带 `run.py`：
+
+```powershell
+python -m tech_etf_quant.cli uzi --target 512480 --command quick-scan --run
+```
+
+可选命令包括 `analyze-stock`、`quick-scan`、`scan-trap`、`dcf`、`comps`、`lbo`、`initiate`、`ic-memo`、`investor-panel`、`trap-detector`。所有输出仍然遵守本项目声明：个人学习用途，不作为投资参考。
 
 ## 常见错误处理
 

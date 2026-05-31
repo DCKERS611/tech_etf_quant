@@ -1,0 +1,37 @@
+enabled: true
+repo_url: https://github.com/wbh604/UZI-Skill.git
+local_path: vendor/UZI-Skill
+report_dir: reports/uzi
+default_depth: lite
+python_executable: ""
+commands:
+  analyze-stock:
+    label: 完整深度分析
+    depth: medium
+  quick-scan:
+    label: 快速预判
+    depth: lite
+  scan-trap:
+    label: 杀猪盘排查
+    depth: lite
+  dcf:
+    label: DCF估值专项
+    depth: deep
+  comps:
+    label: 同行对标
+    depth: medium
+  lbo:
+    label: LBO压力测试
+    depth: deep
+  initiate:
+    label: 机构首次覆盖
+    depth: deep
+  ic-memo:
+    label: 投委会备忘录
+    depth: deep
+  investor-panel:
+    label: 评审团投票
+    depth: lite
+  trap-detector:
+    label: 风险排查
+    depth: lite

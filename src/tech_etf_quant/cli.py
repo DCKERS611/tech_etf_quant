@@ -15,6 +15,14 @@ from .config import PROJECT_ROOT
 from .data_loader import ensure_sample_data, latest_available_date, update_all_data
 from .report import generate_daily_report
 from .scoring import score_latest, save_ranking
+from .uzi import (
+    DEFAULT_UZI_CONFIG,
+    UZI_DEPTHS,
+    create_uzi_task,
+    ensure_uzi_repo,
+    get_uzi_status,
+    run_uzi_analysis,
+)
 from .utils import init_project, setup_logging
 from .watch import configured_watch_times, run_watch, snapshot_template
 
@@ -149,6 +157,65 @@ def backtest_cmd(start: str, end: str) -> None:
     console.print("[green]Backtest completed.[/green]")
     console.print(performance)
     console.print(f"Output: {result['output_dir']}")
+
+
+@main.command("uzi")
+@click.option("--target", required=True, help="Stock or ETF target, e.g. 600519 or 512480.")
+@click.option(
+    "--command",
+    "analysis_command",
+    type=click.Choice(list(DEFAULT_UZI_CONFIG["commands"].keys())),
+    default="quick-scan",
+    show_default=True,
+    help="Project-local UZI task command.",
+)
+@click.option("--depth", type=click.Choice(list(UZI_DEPTHS)), default=None, help="Override UZI depth.")
+@click.option("--ensure", "ensure_repo", is_flag=True, help="Clone the UZI repo into vendor/UZI-Skill if missing.")
+@click.option("--update", is_flag=True, help="Fast-forward update the local UZI repo.")
+@click.option("--run", "run_now", is_flag=True, help="Run UZI run.py after creating the task.")
+@click.option("--timeout", "timeout_seconds", default=1800, show_default=True, help="Run timeout in seconds.")
+def uzi_cmd(
+    target: str,
+    analysis_command: str,
+    depth: str | None,
+    ensure_repo: bool,
+    update: bool,
+    run_now: bool,
+    timeout_seconds: int,
+) -> None:
+    """Create or run a project-local UZI analysis task."""
+
+    init_project()
+    status = ensure_uzi_repo(update=update) if ensure_repo or update or run_now else get_uzi_status()
+    if run_now:
+        result = run_uzi_analysis(
+            target=target,
+            command=analysis_command,
+            depth=depth,
+            timeout_seconds=timeout_seconds,
+        )
+        console.print(f"[green]UZI run status:[/green] {result.message}")
+        console.print(f"Output: {result.output_dir}")
+        if result.stdout.strip():
+            console.print(result.stdout[-4000:])
+        if result.stderr.strip():
+            console.print(f"[yellow]{result.stderr[-4000:]}[/yellow]")
+        return
+
+    task = create_uzi_task(target=target, command=analysis_command, depth=depth)
+    table = Table(title="Project-local UZI")
+    table.add_column("item")
+    table.add_column("value")
+    table.add_row("scope", "project-local")
+    table.add_row("installed", str(status.installed))
+    table.add_row("message", status.message)
+    table.add_row("install_dir", status.install_dir)
+    table.add_row("task", task["json_path"])
+    table.add_row("slash_command", task["slash_command"])
+    table.add_row("output_dir", task["output_dir"])
+    console.print(table)
+    if not status.installed:
+        console.print("[yellow]Run again with --ensure or --run to clone vendor/UZI-Skill first.[/yellow]")
 
 
 @main.command("dashboard")

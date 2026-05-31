@@ -18,6 +18,15 @@ from tech_etf_quant.data_loader import ensure_sample_data, latest_available_date
 from tech_etf_quant.portfolio import Portfolio
 from tech_etf_quant.report import generate_daily_report
 from tech_etf_quant.scoring import score_latest
+from tech_etf_quant.uzi import (
+    UZI_DEPTHS,
+    create_uzi_task,
+    default_depth_for_command,
+    ensure_uzi_repo,
+    get_uzi_status,
+    run_uzi_analysis,
+    uzi_commands,
+)
 from tech_etf_quant.utils import init_project
 from tech_etf_quant.watch import SNAPSHOT_COLUMNS, configured_watch_times, run_watch
 
@@ -26,7 +35,7 @@ init_project()
 
 st.title("A股科技ETF量化辅助系统")
 
-tabs = st.tabs(["首页概览", "ETF池", "今日排名", "风控状态", "每日交易报告", "回测结果", "交易日志", "盘中自动刷新"])
+tabs = st.tabs(["首页概览", "ETF池", "今日排名", "风控状态", "每日交易报告", "回测结果", "交易日志", "盘中自动刷新", "UZI项目分析"])
 
 with tabs[0]:
     data = load_processed_data()
@@ -171,3 +180,61 @@ with tabs[7]:
             row.to_csv(tmp, index=False, encoding="utf-8")
             result = run_watch(snap_date, snap_time, tmp, source="manual")
             st.dataframe(result, use_container_width=True, hide_index=True)
+
+with tabs[8]:
+    status = get_uzi_status()
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("作用域", "当前项目")
+    c2.metric("本地引擎", "就绪" if status.installed else "未准备")
+    c3.metric("版本", status.current_commit or "-")
+    c4.metric("输出目录", "reports/uzi")
+
+    p1, p2 = st.columns([1, 1])
+    if p1.button("准备 UZI 引擎", type="primary"):
+        status = ensure_uzi_repo(update=False)
+        st.success(status.message)
+    if p2.button("更新 UZI 引擎"):
+        status = ensure_uzi_repo(update=True)
+        st.success(status.message)
+
+    commands = uzi_commands()
+    keys = list(commands.keys())
+    form_cols = st.columns([1.2, 1, 0.8, 0.8])
+    target = form_cols[0].text_input("标的", value="512480")
+    analysis_command = form_cols[1].selectbox(
+        "类型",
+        keys,
+        index=keys.index("quick-scan") if "quick-scan" in keys else 0,
+        format_func=lambda key: f"{key} / {commands[key].get('label', key)}",
+    )
+    default_depth = default_depth_for_command(analysis_command)
+    depth = form_cols[2].selectbox("深度", UZI_DEPTHS, index=UZI_DEPTHS.index(default_depth))
+    timeout_seconds = int(form_cols[3].number_input("超时秒", min_value=120, max_value=7200, value=1800, step=120))
+
+    a1, a2 = st.columns([1, 1])
+    if a1.button("生成任务"):
+        task = create_uzi_task(target=target, command=analysis_command, depth=depth)
+        st.success(task["markdown_path"])
+        st.json(
+            {
+                "slash_command": task["slash_command"],
+                "run_command": " ".join(task["run_command"]),
+                "output_dir": task["output_dir"],
+            }
+        )
+    if a2.button("运行分析"):
+        with st.spinner("UZI 分析运行中"):
+            result = run_uzi_analysis(
+                target=target,
+                command=analysis_command,
+                depth=depth,
+                timeout_seconds=timeout_seconds,
+            )
+        if result.ok:
+            st.success(result.output_dir)
+        else:
+            st.error(result.message)
+        if result.stdout:
+            st.code(result.stdout[-8000:], language="text")
+        if result.stderr:
+            st.code(result.stderr[-8000:], language="text")

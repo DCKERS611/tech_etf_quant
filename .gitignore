@@ -22,6 +22,8 @@ uv.lock
 logs/*.log
 data/cache/*
 data/snapshots/*
+vendor/UZI-Skill/
+reports/uzi/*
 
 # Keep generated examples intentional; ignore ad-hoc temp files
 *.tmp
