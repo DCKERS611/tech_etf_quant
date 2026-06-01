@@ -1,17 +1,17 @@
 @echo off
-chcp 65001 >nul
-setlocal
+setlocal EnableExtensions
 
-set "PROJECT_ROOT=%~dp0"
-set "PYTHON=%PROJECT_ROOT%.venv\Scripts\python.exe"
-set "APP=%PROJECT_ROOT%app\streamlit_app.py"
-set "LOG_DIR=%PROJECT_ROOT%logs"
+cd /d "%~dp0"
+set "PROJECT_ROOT=%CD%"
+set "PYTHON=%PROJECT_ROOT%\.venv\Scripts\python.exe"
+set "APP=%PROJECT_ROOT%\app\streamlit_app.py"
+set "LOG_DIR=%PROJECT_ROOT%\logs"
 
 if not exist "%PYTHON%" (
-  echo 找不到 Python 虚拟环境：
+  echo Cannot find Python venv:
   echo %PYTHON%
   echo.
-  echo 请先在项目目录运行：
+  echo Please run:
   echo python -m venv .venv
   echo .venv\Scripts\pip install -r requirements.txt
   pause
@@ -19,7 +19,7 @@ if not exist "%PYTHON%" (
 )
 
 if not exist "%APP%" (
-  echo 找不到网页主程序：
+  echo Cannot find Streamlit app:
   echo %APP%
   pause
   exit /b 1
@@ -27,30 +27,27 @@ if not exist "%APP%" (
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-echo 正在启动 A股科技ETF量化工作台...
-echo.
+echo Closing old dashboard and scheduler...
+wmic process where "CommandLine like '%%tech_etf_quant.cli%%schedule%%--loop%%'" delete >nul 2>nul
+wmic process where "CommandLine like '%%streamlit%%run%%streamlit_app.py%%'" delete >nul 2>nul
+wmic process where "CommandLine like '%%app\\streamlit_app.py%%'" delete >nul 2>nul
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$root = '%PROJECT_ROOT%';" ^
-  "$py = '%PYTHON%';" ^
-  "$app = '%APP%';" ^
-  "$log = '%LOG_DIR%';" ^
-  "$schedulerPid = Join-Path $log 'scheduler.pid';" ^
-  "$dashboardPid = Join-Path $log 'dashboard.pid';" ^
-  "function Test-Pid($file) { if (!(Test-Path $file)) { return $false }; $pidText = Get-Content $file -ErrorAction SilentlyContinue; if (!$pidText) { return $false }; return $null -ne (Get-Process -Id ([int]$pidText) -ErrorAction SilentlyContinue) };" ^
-  "function Stop-Pid($file) { if (Test-Pid $file) { $pidText = Get-Content $file -ErrorAction SilentlyContinue; Stop-Process -Id ([int]$pidText) -Force -ErrorAction SilentlyContinue }; Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue };" ^
-  "Stop-Pid $schedulerPid;" ^
-  "Stop-Pid $dashboardPid;" ^
-  "$p = Start-Process -FilePath $py -ArgumentList @('-m','tech_etf_quant.cli','schedule','--loop') -WorkingDirectory $root -RedirectStandardOutput (Join-Path $log 'scheduler.log') -RedirectStandardError (Join-Path $log 'scheduler.err.log') -WindowStyle Hidden -PassThru; $p.Id | Set-Content -Path $schedulerPid -Encoding ascii; Write-Host ('后台自动刷新已启动，进程号：' + $p.Id) -ForegroundColor Green;" ^
-  "$port = 8501; while (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { $port += 1 };" ^
-  "$url = 'http://localhost:' + $port;" ^
-  "$d = Start-Process -FilePath $py -ArgumentList @('-m','streamlit','run',$app,'--server.address','localhost','--server.port',([string]$port)) -WorkingDirectory $root -RedirectStandardOutput (Join-Path $log 'dashboard.log') -RedirectStandardError (Join-Path $log 'dashboard.err.log') -WindowStyle Hidden -PassThru;" ^
-  "$d.Id | Set-Content -Path $dashboardPid -Encoding ascii;" ^
-  "Start-Sleep -Seconds 5;" ^
-  "Start-Process $url;" ^
-  "Write-Host ('网页面板已打开：' + $url) -ForegroundColor Green;"
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr /R ":850[1-9] :8510"') do (
+  taskkill /PID %%p /F >nul 2>nul
+)
+
+echo Starting background scheduler...
+start "Tech ETF Scheduler" /min cmd /c ""%PYTHON%" -m tech_etf_quant.cli schedule --loop >> "%LOG_DIR%\scheduler.log" 2>> "%LOG_DIR%\scheduler.err.log""
+
+echo Starting web dashboard...
+start "Tech ETF Dashboard" /min cmd /c ""%PYTHON%" -m streamlit run "%APP%" --server.address localhost --server.port 8501 >> "%LOG_DIR%\dashboard.log" 2>> "%LOG_DIR%\dashboard.err.log""
+
+echo Waiting for dashboard...
+timeout /t 8 /nobreak >nul
+start "" "http://localhost:8501"
 
 echo.
-echo 已完成。你可以关闭这个窗口，后台刷新和网页服务会继续运行。
-echo 日志目录：%LOG_DIR%
+echo Opened: http://localhost:8501
+echo If the browser did not open, copy this URL into your browser.
+echo Logs: %LOG_DIR%
 pause
