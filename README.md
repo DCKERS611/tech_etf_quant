@@ -174,6 +174,16 @@ python -m tech_etf_quant.cli schedule --loop
 
 ### 本地第一次启动
 
+最简单方式：双击项目根目录里的：
+
+```text
+OPEN_WORKBENCH.bat
+```
+
+它会自动启动后台调度器、启动 Streamlit 面板并打开浏览器。
+
+命令行方式：
+
 ```powershell
 cd E:\tech_etf_quant_system_full_spec_v1
 .venv\Scripts\activate
@@ -201,10 +211,10 @@ python -m tech_etf_quant.cli risk-state --sync
 
 - `可行动信号`
 - `平均置信度`
-- `strategy`
-- `risk_permission`
-- `explain`
-- `invalid_condition`
+- `策略`
+- `风控权限`
+- `解释`
+- `失效条件`
 
 ### 盘中刷新
 
@@ -240,20 +250,19 @@ python -m tech_etf_quant.cli schedule --loop
 
 ### 让系统一直挂着跑
 
-推荐方式是在 Windows 里安装一个登录后自动启动的后台任务：
-
-```powershell
-cd E:\tech_etf_quant_system_full_spec_v1
-.\install_scheduler_task.ps1
-```
-
-或双击：
+现在只保留一个启动程序：
 
 ```text
-install_scheduler_task.bat
+OPEN_WORKBENCH.bat
 ```
 
-安装后，Windows 每次登录都会后台启动 `python -m tech_etf_quant.cli schedule --loop`，按固定盘中时间自动刷新。日志在：
+双击它会同时启动后台自动刷新和网页面板。网页左侧有三个开关：
+
+- `自动刷新网页`
+- `每日自动更新日线`
+- `自动执行到期刷新`
+
+只要电脑开着、后台程序没被关，它就会按固定盘中时间自动刷新。日志在：
 
 ```text
 logs/scheduler.log
@@ -261,29 +270,7 @@ logs/scheduler.err.log
 logs/scheduler.pid
 ```
 
-临时手动启动后台调度器：
-
-```powershell
-.\start_scheduler.ps1
-```
-
-临时停止后台调度器：
-
-```powershell
-.\stop_scheduler.ps1
-```
-
-彻底取消开机/登录自动启动：
-
-```powershell
-.\uninstall_scheduler_task.ps1
-```
-
-注意：后台调度器只负责自动刷新和生成记录，不会自动打开网页。需要看面板时再运行：
-
-```powershell
-python -m tech_etf_quant.cli dashboard
-```
+如果想停掉后台进程，可以在任务管理器里结束 `python.exe`，或重启电脑。
 
 ### 收盘后
 
