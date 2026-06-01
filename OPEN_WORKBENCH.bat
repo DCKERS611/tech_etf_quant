@@ -38,8 +38,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$schedulerPid = Join-Path $log 'scheduler.pid';" ^
   "$dashboardPid = Join-Path $log 'dashboard.pid';" ^
   "function Test-Pid($file) { if (!(Test-Path $file)) { return $false }; $pidText = Get-Content $file -ErrorAction SilentlyContinue; if (!$pidText) { return $false }; return $null -ne (Get-Process -Id ([int]$pidText) -ErrorAction SilentlyContinue) };" ^
-  "if (!(Test-Pid $schedulerPid)) { $p = Start-Process -FilePath $py -ArgumentList @('-m','tech_etf_quant.cli','schedule','--loop') -WorkingDirectory $root -RedirectStandardOutput (Join-Path $log 'scheduler.log') -RedirectStandardError (Join-Path $log 'scheduler.err.log') -WindowStyle Hidden -PassThru; $p.Id | Set-Content -Path $schedulerPid -Encoding ascii; Write-Host ('后台自动刷新已启动，进程号：' + $p.Id) -ForegroundColor Green } else { Write-Host '后台自动刷新已经在运行。' -ForegroundColor Yellow };" ^
-  "if (Test-Pid $dashboardPid) { Write-Host '网页面板已经在运行，正在打开浏览器。' -ForegroundColor Yellow; Start-Process 'http://localhost:8501'; exit 0 };" ^
+  "function Stop-Pid($file) { if (Test-Pid $file) { $pidText = Get-Content $file -ErrorAction SilentlyContinue; Stop-Process -Id ([int]$pidText) -Force -ErrorAction SilentlyContinue }; Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue };" ^
+  "Stop-Pid $schedulerPid;" ^
+  "Stop-Pid $dashboardPid;" ^
+  "$p = Start-Process -FilePath $py -ArgumentList @('-m','tech_etf_quant.cli','schedule','--loop') -WorkingDirectory $root -RedirectStandardOutput (Join-Path $log 'scheduler.log') -RedirectStandardError (Join-Path $log 'scheduler.err.log') -WindowStyle Hidden -PassThru; $p.Id | Set-Content -Path $schedulerPid -Encoding ascii; Write-Host ('后台自动刷新已启动，进程号：' + $p.Id) -ForegroundColor Green;" ^
   "$port = 8501; while (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { $port += 1 };" ^
   "$url = 'http://localhost:' + $port;" ^
   "$d = Start-Process -FilePath $py -ArgumentList @('-m','streamlit','run',$app,'--server.address','localhost','--server.port',([string]$port)) -WorkingDirectory $root -RedirectStandardOutput (Join-Path $log 'dashboard.log') -RedirectStandardError (Join-Path $log 'dashboard.err.log') -WindowStyle Hidden -PassThru;" ^
